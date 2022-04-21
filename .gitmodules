@@ -1,0 +1,4 @@
+[submodule "external/CommonLibSSE"]
+	path = external/CommonLibSSE
+	url = https://github.com/tossaponk/CommonLibSSE
+	branch = dev
