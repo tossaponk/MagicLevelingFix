@@ -71,12 +71,13 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 	return true;
 }
 
+static uint64_t g_reportInterval = 1;
+static bool g_ignoreMultiplier = false;
+static bool g_reportEXPGain = true;
+static float g_reportMin = 10;
 namespace MagicLevelingFix
 {
-	static uint64_t g_reportInterval = 1;
-	static bool g_ignoreMultiplier = false;
-	static bool g_reportEXPGain = true;
-	static float g_reportMin = 10;
+
 	static std::map<RE::ActorValue,std::string> g_AVStringMap
 	{
 		{ RE::ActorValue::kOneHanded,		"One-Handed" },
@@ -175,16 +176,6 @@ namespace MagicLevelingFix
 			REL::safe_fill( reloc.address(), 0x90, 7 );
 
 			stl::write_patch_branch<SkillEXPHook>( reloc.address(), patch );
-
-			CSimpleIniA iniFile;
-			iniFile.SetUnicode();
-			iniFile.SetMultiKey();
-			iniFile.LoadFile( L"Data/SKSE/Plugins/MagicLevelingFix.ini" );
-
-			g_ignoreMultiplier	= iniFile.GetBoolValue( "Settings", "IgnoreSkillUseMult", false );
-			g_reportEXPGain		= iniFile.GetBoolValue( "Settings", "ReportEXPGain", false );
-			g_reportInterval	= iniFile.GetLongValue( "Settings", "ReportInterval", 1 );
-			g_reportMin			= (float)iniFile.GetDoubleValue( "Settings", "ReportMinimum", 10 );
 		}
 
 		static inline REL::Relocation<decltype(thunk)> func;
@@ -235,7 +226,20 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load( const SKSE::LoadInterface* a_
 
 	SKSE::Init( a_skse );
 
-	MagicLevelingFix::SkillEXPHook::Install();
+	CSimpleIniA iniFile;
+	iniFile.SetUnicode();
+	iniFile.SetMultiKey();
+	iniFile.LoadFile( L"Data/SKSE/Plugins/MagicLevelingFix.ini" );
+
+	g_ignoreMultiplier	= iniFile.GetBoolValue( "Settings", "IgnoreSkillUseMult", false );
+	g_reportEXPGain		= iniFile.GetBoolValue( "Settings", "ReportEXPGain", false );
+	g_reportInterval	= iniFile.GetLongValue( "Settings", "ReportInterval", 1 );
+	g_reportMin			= (float)iniFile.GetDoubleValue( "Settings", "ReportMinimum", 10 );
+
+	// Only install exp reporting hook when enabled
+	if( g_reportEXPGain )
+		MagicLevelingFix::SkillEXPHook::Install();
+
 	MagicLevelingFix::SpellUsageHook::Install();
 
 	return true;
